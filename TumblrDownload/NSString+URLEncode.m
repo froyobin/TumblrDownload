@@ -13,8 +13,7 @@
 - (NSString *)urlEncode
 {
     //Not the fancy way because unicode
-    return [[[[self stringByReplacingOccurrencesOfString:@"?" withString:@"%3F"] stringByReplacingOccurrencesOfString:@"@" withString:@"%40"] stringByReplacingOccurrencesOfString:@"/" withString:@"%2F"] stringByReplacingOccurrencesOfString:@":" withString:@"%3A"];
-    
+    return [[[[[self stringByReplacingOccurrencesOfString:@"?" withString:@"%3F"] stringByReplacingOccurrencesOfString:@"@" withString:@"%40"] stringByReplacingOccurrencesOfString:@"/" withString:@"%2F"] stringByReplacingOccurrencesOfString:@":" withString:@"%3A"] stringByReplacingOccurrencesOfString:@"\n" withString:@""];
 }
 
 @end

@@ -13,7 +13,7 @@
 #define kKEY_PATH @"save path"
 #define kKEY_API_KEY @"API key"
 #define kKEY_BLOG_NAME @"blog name"
-#define kDEFAULT_POSTS_TO_DOWNLOAD @"20"
+#define kDEFAULT_POSTS_TO_DOWNLOAD @20
 
 
 @interface ViewController () <NSTextDelegate>
@@ -22,6 +22,7 @@
 @property (strong) IBOutlet NSTextView *logOutput;
 @property (strong) IBOutlet NSTextField *savePath;
 @property (strong) IBOutlet NSTextField *blogName;
+@property (nonatomic) NSUInteger totalPosts;
 
 @end
 
@@ -69,7 +70,9 @@
 - (void)downloadLikesFromBlog:(NSString *)fullBlog
 {
     [DownloadCenter sharedInstance].saveLocation = self.savePath.stringValue;
-    [self downloadPostsFromBlog:fullBlog atOffset:@"0" count:@"1" callBack:^(NSString *timeStamp) {
+    [[DownloadCenter sharedInstance] resetCounter];
+    self.totalPosts = 0;
+    [self downloadPostsFromBlog:fullBlog atOffset:@0 count:@1 callBack:^(id timeStamp) {
         if (timeStamp) {
             [self recursivelyDownloadPostsFromBlog:fullBlog before:timeStamp count:kDEFAULT_POSTS_TO_DOWNLOAD];
         }
@@ -77,7 +80,7 @@
     
 }
 
-- (void)downloadPostsFromBlog:(NSString *)fullBlog atOffset:(NSString *)offset count:(NSString *)count callBack:(void(^)(NSString *timeStamp))callback
+- (void)downloadPostsFromBlog:(NSString *)fullBlog atOffset:(NSNumber *)offset count:(NSNumber *)count callBack:(void(^)(id timeStamp))callback
 {
     [[TMAPIClient sharedInstance] likes:fullBlog
                              parameters:@{@"limit" : count, @"offset" : offset}
@@ -85,14 +88,14 @@
                                    if (error) {
                                        return;
                                    }
-                                   NSString *timeStamp = [self downloadPostsIn:result];
+                                   id timeStamp = [self downloadPostsIn:result];
                                    if (callback) {
                                        callback(timeStamp);
                                    }
                                }];
 }
 
-- (void)recursivelyDownloadPostsFromBlog:(NSString *)fullBlog before:(NSString *)timestamp count:(NSString *)count
+- (void)recursivelyDownloadPostsFromBlog:(NSString *)fullBlog before:(NSNumber *)timestamp count:(NSNumber *)count
 {
     [[TMAPIClient sharedInstance] likes:fullBlog
                              parameters:@{@"limit" : count, @"before" : timestamp}
@@ -100,28 +103,31 @@
                                    if (error) {
                                        return;
                                    }
-                                   NSString *newtimeStamp = [self downloadPostsIn:result];
+                                   id newtimeStamp = [self downloadPostsIn:result];
                                    if (newtimeStamp) {
                                        [self recursivelyDownloadPostsFromBlog:fullBlog before:newtimeStamp count:kDEFAULT_POSTS_TO_DOWNLOAD];
+                                   } else {
+                                       [self logMessageToScreen:[NSString stringWithFormat:@"That's all of it! Posts: %lu", self.totalPosts]];
                                    }
                                }];
 }
 
-- (NSString *)downloadPostsIn:(NSDictionary *)response
+- (id)downloadPostsIn:(NSDictionary *)response
 {
-    NSNumber *likedCount = [response valueForKey:@"liked_count"];
     NSArray *posts = [response valueForKey:@"liked_posts"];
     
     [self logMessageToScreen:[NSString stringWithFormat:@"returned posts: %lu", posts.count]];
     
-    NSString *lastPostLikedTime = nil;
+    id lastPostLikedTime = nil;
     for (NSDictionary *post in posts) {
         lastPostLikedTime = [self downloadPost:post];
     }
+    
+    self.totalPosts += posts.count;
     return lastPostLikedTime;
 }
 
-- (NSString *)downloadPost:(NSDictionary *)post
+- (id)downloadPost:(NSDictionary *)post
 {
     NSMutableString *postSummary = [NSMutableString new];
     [postSummary appendFormat:@"%@ posted %@ liked %@ %@ %@", post[@"type"], post[@"timestamp"], post[@"liked_timestamp"], post[@"post_url"], [self postTitle:post]];
@@ -149,7 +155,7 @@
     
     [self logMessageToScreen:postSummary];
     
-    return [NSString stringWithFormat:@"%@", post[@"liked_timestamp"]];
+    return post[@"liked_timestamp"];
 }
 
 - (NSString *)postTitle:(NSDictionary *)post

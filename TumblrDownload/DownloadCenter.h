@@ -11,9 +11,12 @@
 @interface DownloadCenter : NSObject
 
 @property (nonatomic, copy) NSString *saveLocation;
+@property (nonatomic) int errorCount;
+@property (nonatomic) int successCount;
 
 + (instancetype)sharedInstance;
 
+- (void)resetCounter;
 - (void)addURLtoDownloadQueue:(NSString *)url filename:(NSString *)filename relativePath:(NSString *)relativePath;
 
 @end
