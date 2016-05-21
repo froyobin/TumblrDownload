@@ -34,6 +34,7 @@ static DownloadCenter *_instance;
         _downloadQueue = [[NSOperationQueue alloc]init];
         _downloadQueue.name = @"download queue";
         _downloadQueue.maxConcurrentOperationCount = 5;
+        [_downloadQueue addObserver:self forKeyPath:@"operationCount" options:NSKeyValueObservingOptionNew context:nil];
     }
     return _downloadQueue;
 }
@@ -48,14 +49,32 @@ static DownloadCenter *_instance;
             NSLog(@"%@", error.localizedDescription);
         } else {
             NSString *destinationPath = relativePath.length ? [_saveLocation stringByAppendingPathComponent:relativePath] :_saveLocation;
-            NSString *destinationFilePath = filename.length ? [[destinationPath stringByAppendingPathComponent:filename.urlEncode] stringByAppendingPathExtension:urlStr.pathExtension]  : [destinationPath stringByAppendingPathComponent:urlStr.lastPathComponent];
-            BOOL succeed = [data writeToFile:destinationFilePath options:NSDataWritingAtomic error:&error];
-            if (!succeed) {
-                NSLog(@"save file %@ failed : %@", destinationFilePath, error.localizedDescription);
+            
+            [[NSFileManager defaultManager] createDirectoryAtPath:destinationPath
+                                      withIntermediateDirectories:YES
+                                                       attributes:nil
+                                                            error:&error];
+            if (error != nil) {
+                NSLog(@"error creating directory: %@", error);
+                
+            } else {
+                NSString *destinationFilePath = filename.length ? [[destinationPath stringByAppendingPathComponent:filename.urlEncode] stringByAppendingPathExtension:urlStr.pathExtension]  : [destinationPath stringByAppendingPathComponent:urlStr.lastPathComponent];
+                
+                BOOL succeed = [data writeToFile:destinationFilePath options:NSDataWritingAtomic error:&error];
+                if (!succeed) {
+                    NSLog(@"save file %@ failed : %@", destinationFilePath, error.localizedDescription);
+                }
             }
         }
     }];
     [self.downloadQueue addOperation:downloadOperation];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context
+{
+    if (object == self.downloadQueue && [change[NSKeyValueChangeNewKey] integerValue] == 0) {
+        NSLog(@"Download finished");
+    }
 }
 
 @end

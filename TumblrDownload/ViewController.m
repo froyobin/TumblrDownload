@@ -68,7 +68,7 @@
 - (void)downloadLikesFromBlog:(NSString *)fullBlog
 {
     [[TMAPIClient sharedInstance] likes:fullBlog
-                             parameters:@{@"limit" : @"20", @"offset" : @"0"}
+                             parameters:@{@"limit" : @"5", @"before" : @"1444630196"}
                                callback:^(NSDictionary *result, NSError *error) {
                                    if (error) {
                                        return;
@@ -82,36 +82,58 @@
 {
     NSNumber *likedCount = [response valueForKey:@"liked_count"];
     NSArray *posts = [response valueForKey:@"liked_posts"];
+    [self logMessageToScreen:[NSString stringWithFormat:@"returned posts: %lu", posts.count]];
     for (NSDictionary *post in posts) {
         [self downloadPost:post];
     }
 }
 
-- (void)downloadPost:(NSDictionary *)post
+- (NSString *)downloadPost:(NSDictionary *)post
 {
     NSMutableString *postSummary = [NSMutableString new];
-    [postSummary appendFormat:@"%@\n", post[@"type"]];
-    [postSummary appendFormat:@"%@\n", post[@"timestamp"]];
-    [postSummary appendFormat:@"%@\n", post[@"summary"]];
+    [postSummary appendFormat:@"%@ posted %@ liked %@ %@ %@", post[@"type"], post[@"timestamp"], post[@"liked_timestamp"], post[@"post_url"], [self postTitle:post]];
+
     if ([post[@"type"] isEqualToString:@"video"]) {
         NSString *videoURL = post[@"video_url"];
-        [postSummary appendFormat:@"%@\n", videoURL];
-        [[DownloadCenter sharedInstance] addURLtoDownloadQueue:videoURL filename:post[@"summary"] relativePath:nil];
+        [[DownloadCenter sharedInstance] addURLtoDownloadQueue:videoURL filename:[self postTitle:post] relativePath:nil];
+        
     } else if ([post[@"type"] isEqualToString:@"photo"]) {
         NSArray *allPhotos = post[@"photos"];
+        
         if (allPhotos.count == 1) {
+            
             NSString *photoURL = [[allPhotos firstObject] valueForKeyPath:@"original_size.url"];
-            [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:post[@"summary"] relativePath:nil];
+            [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:[self postTitle:post] relativePath:nil];
+            
         } else {
+            [postSummary appendFormat:@" count %lu", allPhotos.count];
             for (NSDictionary *singlePhoto in allPhotos) {
                 NSString *photoURL = [singlePhoto valueForKeyPath:@"original_size.url"];
-                [postSummary appendFormat:@"%@\n", photoURL];
-                [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:nil relativePath:post[@"summary"]];
+                [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:nil relativePath:[self postTitle:post]];
             }
         }
     }
+    
+    [self logMessageToScreen:postSummary];
+    
+    return [NSString stringWithFormat:@"%@", post[@"liked_timestamp"]];
+}
+
+- (NSString *)postTitle:(NSDictionary *)post
+{
+    NSString *content = post[@"content"];
+    NSString *summary = post[@"summary"];
+    NSString *postID = [NSString stringWithFormat:@"%@", post[@"id"]];
+    if (content.length == 0 && summary.length == 0) {
+        return postID;
+    }
+    return content.length > summary.length ? content : summary;
+}
+
+- (void)logMessageToScreen:(NSString *)message
+{
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSAttributedString* attr = [[NSAttributedString alloc] initWithString:postSummary];
+        NSAttributedString* attr = [[NSAttributedString alloc] initWithString:[message stringByAppendingString:@"\n"]];
         
         [[self.logOutput textStorage] appendAttributedString:attr];
         [self.logOutput scrollRangeToVisible:NSMakeRange([[_logOutput string] length], 0)];
