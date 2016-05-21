@@ -24,6 +24,8 @@
 @property (strong) IBOutlet NSTextField *blogName;
 @property (nonatomic) NSUInteger totalPosts;
 
+@property (nonatomic) NSMutableDictionary<NSString *, NSNumber *> *postsToUnlike;
+
 @end
 
 
@@ -67,6 +69,49 @@
     [self downloadLikesFromBlog:fullBlog];
 }
 
+- (IBAction)clickUnlike:(id)sender {
+    ////set OAuth keys
+    
+    [self readUnlikePostsFromFile];
+    
+    [self unlikeNextPost];
+}
+
+- (void)readUnlikePostsFromFile
+{
+    self.postsToUnlike = [NSMutableDictionary new];
+    
+    NSString *filePath = [self.savePath.stringValue stringByAppendingPathComponent:@"posts_unlike.txt"];
+    NSError *error;
+    NSString *contents = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:&error];
+    if (!error) {
+        NSArray *substrings = [contents componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@" \n"]];
+        for (int i=0; i<substrings.count; i+=2) {
+            [self.postsToUnlike setObject:[NSNumber numberWithLong:[substrings[i+1] longLongValue]] forKey:substrings[i]];
+        }
+    }
+}
+
+- (void)unlikeNextPost
+{
+    if (self.postsToUnlike.count == 0) {
+        NSLog(@"No more to unlike");
+        return;
+    }
+    NSString *reblog_key = [[self.postsToUnlike allKeys] firstObject];
+    NSNumber *blog_id = [self.postsToUnlike objectForKey:reblog_key];
+    [self.postsToUnlike removeObjectForKey:reblog_key];
+    [[TMAPIClient sharedInstance] unlike:blog_id.stringValue
+                               reblogKey:reblog_key
+                                callback:^(id result, NSError *error) {
+                                    NSLog(@"%@", result);
+                                    if (error) {
+                                        NSLog(@"%@", error.localizedDescription);
+                                    }
+                                    [self unlikeNextPost];
+                                }];
+}
+
 - (void)downloadLikesFromBlog:(NSString *)fullBlog
 {
     [DownloadCenter sharedInstance].saveLocation = self.savePath.stringValue;
@@ -106,8 +151,6 @@
                                    id newtimeStamp = [self downloadPostsIn:result];
                                    if (newtimeStamp) {
                                        [self recursivelyDownloadPostsFromBlog:fullBlog before:newtimeStamp count:kDEFAULT_POSTS_TO_DOWNLOAD];
-                                   } else {
-                                       [self logMessageToScreen:[NSString stringWithFormat:@"That's all of it! Posts: %lu", self.totalPosts]];
                                    }
                                }];
 }
@@ -115,8 +158,6 @@
 - (id)downloadPostsIn:(NSDictionary *)response
 {
     NSArray *posts = [response valueForKey:@"liked_posts"];
-    
-    [self logMessageToScreen:[NSString stringWithFormat:@"returned posts: %lu", posts.count]];
     
     id lastPostLikedTime = nil;
     for (NSDictionary *post in posts) {
@@ -130,7 +171,7 @@
 - (id)downloadPost:(NSDictionary *)post
 {
     NSMutableString *postSummary = [NSMutableString new];
-    [postSummary appendFormat:@"%@ posted %@ liked %@ %@ %@", post[@"type"], post[@"timestamp"], post[@"liked_timestamp"], post[@"post_url"], [self postTitle:post]];
+    [postSummary appendFormat:@"%@ %@", post[@"reblog_key"], post[@"id"]];
 
     if ([post[@"type"] isEqualToString:@"video"]) {
         NSString *videoURL = post[@"video_url"];
