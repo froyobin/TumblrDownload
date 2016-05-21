@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import <TMTumblrSDK/TMAPIClient.h>
+#import "DownloadCenter.h"
 
 #define kKEY_PATH @"save path"
 #define kKEY_API_KEY @"API key"
@@ -67,11 +68,12 @@
 - (void)downloadLikesFromBlog:(NSString *)fullBlog
 {
     [[TMAPIClient sharedInstance] likes:fullBlog
-                             parameters:@{@"limit" : @"30", @"offset" : @"300"}
+                             parameters:@{@"limit" : @"20", @"offset" : @"0"}
                                callback:^(NSDictionary *result, NSError *error) {
                                    if (error) {
                                        return;
                                    }
+                                   [DownloadCenter sharedInstance].saveLocation = self.savePath.stringValue;
                                    [self downloadPostsIn:result];
                             }];
 }
@@ -92,11 +94,20 @@
     [postSummary appendFormat:@"%@\n", post[@"timestamp"]];
     [postSummary appendFormat:@"%@\n", post[@"summary"]];
     if ([post[@"type"] isEqualToString:@"video"]) {
-        [postSummary appendFormat:@"%@\n", post[@"video_url"]];
+        NSString *videoURL = post[@"video_url"];
+        [postSummary appendFormat:@"%@\n", videoURL];
+        [[DownloadCenter sharedInstance] addURLtoDownloadQueue:videoURL filename:post[@"summary"] relativePath:nil];
     } else if ([post[@"type"] isEqualToString:@"photo"]) {
         NSArray *allPhotos = post[@"photos"];
-        for (NSDictionary *singlePhoto in allPhotos) {
-            [postSummary appendFormat:@"%@\n", [singlePhoto valueForKeyPath:@"original_size.url"]];
+        if (allPhotos.count == 1) {
+            NSString *photoURL = [[allPhotos firstObject] valueForKeyPath:@"original_size.url"];
+            [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:post[@"summary"] relativePath:nil];
+        } else {
+            for (NSDictionary *singlePhoto in allPhotos) {
+                NSString *photoURL = [singlePhoto valueForKeyPath:@"original_size.url"];
+                [postSummary appendFormat:@"%@\n", photoURL];
+                [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:nil relativePath:post[@"summary"]];
+            }
         }
     }
     dispatch_async(dispatch_get_main_queue(), ^{
