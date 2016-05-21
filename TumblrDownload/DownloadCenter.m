@@ -46,7 +46,7 @@ static DownloadCenter *_instance;
         NSError *error;
         NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&error];
         if (error) {
-            NSLog(@"%@", error.localizedDescription);
+            NSLog(@"error downloading %@ to %@/%@ %@", url, relativePath, filename, error.localizedDescription);
         } else {
             NSString *destinationPath = relativePath.length ? [_saveLocation stringByAppendingPathComponent:relativePath] :_saveLocation;
             

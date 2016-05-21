@@ -13,6 +13,7 @@
 #define kKEY_PATH @"save path"
 #define kKEY_API_KEY @"API key"
 #define kKEY_BLOG_NAME @"blog name"
+#define kDEFAULT_POSTS_TO_DOWNLOAD @"20"
 
 
 @interface ViewController () <NSTextDelegate>
@@ -67,25 +68,57 @@
 
 - (void)downloadLikesFromBlog:(NSString *)fullBlog
 {
+    [DownloadCenter sharedInstance].saveLocation = self.savePath.stringValue;
+    [self downloadPostsFromBlog:fullBlog atOffset:@"0" count:@"1" callBack:^(NSString *timeStamp) {
+        if (timeStamp) {
+            [self recursivelyDownloadPostsFromBlog:fullBlog before:timeStamp count:kDEFAULT_POSTS_TO_DOWNLOAD];
+        }
+    }];
+    
+}
+
+- (void)downloadPostsFromBlog:(NSString *)fullBlog atOffset:(NSString *)offset count:(NSString *)count callBack:(void(^)(NSString *timeStamp))callback
+{
     [[TMAPIClient sharedInstance] likes:fullBlog
-                             parameters:@{@"limit" : @"5", @"before" : @"1444630196"}
+                             parameters:@{@"limit" : count, @"offset" : offset}
                                callback:^(NSDictionary *result, NSError *error) {
                                    if (error) {
                                        return;
                                    }
-                                   [DownloadCenter sharedInstance].saveLocation = self.savePath.stringValue;
-                                   [self downloadPostsIn:result];
-                            }];
+                                   NSString *timeStamp = [self downloadPostsIn:result];
+                                   if (callback) {
+                                       callback(timeStamp);
+                                   }
+                               }];
 }
 
-- (void)downloadPostsIn:(NSDictionary *)response
+- (void)recursivelyDownloadPostsFromBlog:(NSString *)fullBlog before:(NSString *)timestamp count:(NSString *)count
+{
+    [[TMAPIClient sharedInstance] likes:fullBlog
+                             parameters:@{@"limit" : count, @"before" : timestamp}
+                               callback:^(NSDictionary *result, NSError *error) {
+                                   if (error) {
+                                       return;
+                                   }
+                                   NSString *newtimeStamp = [self downloadPostsIn:result];
+                                   if (newtimeStamp) {
+                                       [self recursivelyDownloadPostsFromBlog:fullBlog before:newtimeStamp count:kDEFAULT_POSTS_TO_DOWNLOAD];
+                                   }
+                               }];
+}
+
+- (NSString *)downloadPostsIn:(NSDictionary *)response
 {
     NSNumber *likedCount = [response valueForKey:@"liked_count"];
     NSArray *posts = [response valueForKey:@"liked_posts"];
+    
     [self logMessageToScreen:[NSString stringWithFormat:@"returned posts: %lu", posts.count]];
+    
+    NSString *lastPostLikedTime = nil;
     for (NSDictionary *post in posts) {
-        [self downloadPost:post];
+        lastPostLikedTime = [self downloadPost:post];
     }
+    return lastPostLikedTime;
 }
 
 - (NSString *)downloadPost:(NSDictionary *)post
