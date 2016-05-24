@@ -9,6 +9,7 @@
 #import "ViewController.h"
 #import <TMTumblrSDK/TMAPIClient.h>
 #import "DownloadCenter.h"
+#import "NSLabel.h"
 
 #define kKEY_PATH @"save path"
 #define kKEY_API_KEY @"API key"
@@ -70,18 +71,72 @@
 }
 
 - (IBAction)clickUnlike:(id)sender {
-    ////set OAuth keys
+
+    if (![self readOAuthTokenFromUser]) {
+        return;
+    }
     
-    [self readUnlikePostsFromFile];
+    NSOpenPanel *openPanel = [NSOpenPanel openPanel];
     
-    [self unlikeNextPost];
+    [openPanel setCanChooseFiles:YES];
+    [openPanel setCanChooseDirectories:NO];
+    [openPanel setAllowsMultipleSelection:NO];
+    [openPanel setMessage:@"Select posts records to unlike"];
+    
+    if ([openPanel runModal] == NSModalResponseOK) {
+        NSString *filePath = openPanel.URL.path;
+        [self readUnlikePostsFromFile:filePath];
+        [self unlikeNextPost];
+    }
 }
 
-- (void)readUnlikePostsFromFile
+- (BOOL)readOAuthTokenFromUser
+{
+    NSAlert *alert = [NSAlert new];
+    alert.messageText = @"Input OAuth token";
+    [alert addButtonWithTitle:@"OK"];
+    [alert addButtonWithTitle:@"Cancel"];
+    
+    NSView *view = [[NSView alloc]initWithFrame:NSMakeRect(0, 0, 0.5 * CGRectGetWidth(self.view.frame), 70)];
+    
+    NSLabel *consumerSecretLabel = [[NSLabel alloc]initWithFrame:NSMakeRect(0, 0, 110, 20)];
+    consumerSecretLabel.stringValue = @"Consumer Secret";
+    NSTextField *consumerSecret = [[NSTextField alloc]initWithFrame:NSMakeRect(115, 0, 0.5 * CGRectGetWidth(self.view.frame), 20)];
+    
+    NSLabel *tokenLabel = [[NSLabel alloc]initWithFrame:NSMakeRect(0, 25, 110, 20)];
+    tokenLabel.stringValue = @"Token";
+    NSTextField *token = [[NSTextField alloc]initWithFrame:NSMakeRect(115, 25, 0.5 * CGRectGetWidth(self.view.frame), 20)];
+    
+    NSLabel *tokenSecretLabel = [[NSLabel alloc]initWithFrame:NSMakeRect(0, 50, 110, 20)];
+    tokenSecretLabel.stringValue = @"Token Secret";
+    NSTextField *tokenSecret = [[NSTextField alloc]initWithFrame:NSMakeRect(115, 50, 0.5 * CGRectGetWidth(self.view.frame), 20)];
+    [view addSubview:consumerSecretLabel];
+    [view addSubview:consumerSecret];
+    [view addSubview:tokenLabel];
+    [view addSubview:token];
+    [view addSubview:tokenSecretLabel];
+    [view addSubview:tokenSecret];
+    alert.accessoryView = view;
+    
+    consumerSecret.stringValue = [TMAPIClient sharedInstance].OAuthConsumerSecret ?: @"";
+    token.stringValue = [TMAPIClient sharedInstance].OAuthToken ?: @"";
+    tokenSecret.stringValue = [TMAPIClient sharedInstance].OAuthTokenSecret ?: @"";
+    
+    NSModalResponse selectedButton = [alert runModal];
+    
+    if (selectedButton == NSAlertFirstButtonReturn) {
+        [TMAPIClient sharedInstance].OAuthConsumerSecret = consumerSecret.stringValue;
+        [TMAPIClient sharedInstance].OAuthToken = token.stringValue;
+        [TMAPIClient sharedInstance].OAuthTokenSecret = tokenSecret.stringValue;
+        return YES;
+    }
+    return NO;
+}
+
+- (void)readUnlikePostsFromFile:(NSString *)filePath
 {
     self.postsToUnlike = [NSMutableDictionary new];
     
-    NSString *filePath = [self.savePath.stringValue stringByAppendingPathComponent:@"posts_unlike.txt"];
     NSError *error;
     NSString *contents = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:&error];
     if (!error) {
