@@ -51,42 +51,51 @@ static DownloadCenter *_instance;
             self.successCount++;
             return;
         }
+        
         NSError *error;
         NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&error];
         if (error) {
-//            NSLog(@"error downloading %@ to %@/%@ %@", url, relativePath, filename, error.localizedDescription);
             self.errorCount++;
         } else {
-            [[NSFileManager defaultManager] createDirectoryAtPath:destinationPath
-                                      withIntermediateDirectories:YES
-                                                       attributes:nil
-                                                            error:&error];
-            if (error != nil) {
-                NSLog(@"error creating directory: %@", error);
-                self.errorCount++;
-                
-            } else {
-                BOOL succeed = [data writeToFile:destinationFilePath options:NSDataWritingAtomic error:&error];
-                if (!succeed) {
-                    NSLog(@"save file %@ failed : %@", destinationFilePath, error.localizedDescription);
-                    destinationFilePath = [destinationPath stringByAppendingPathComponent:urlStr.lastPathComponent];
-                    NSLog(@"Trying to save to %@", destinationFilePath);
-                    succeed = [data writeToFile:destinationFilePath options:NSDataWritingAtomic error:&error];
-                    if (succeed) {
-                        NSLog(@".....and succeeded.");
-                        self.successCount++;
-                    } else {
-                        NSLog(@".....still failed.");
-                        self.errorCount++;
-                    }
-                } else {
-                    self.successCount++;
-                }
-                
-            }
+            [self saveFile:data toLocation:destinationFilePath alterPath:[_saveLocation stringByAppendingPathComponent:urlStr.lastPathComponent]];
         }
     }];
     [self.downloadQueue addOperation:downloadOperation];
+}
+
+- (BOOL)saveFile:(NSData *)data toLocation:(NSString *)filePath alterPath:(NSString *)alterFilePath
+{
+    NSError *error;
+    [[NSFileManager defaultManager] createDirectoryAtPath:[filePath stringByDeletingLastPathComponent]
+                               withIntermediateDirectories:YES
+                                                attributes:nil
+                                                     error:&error];
+    if (error != nil) {
+        NSLog(@"error creating directory: %@", error.localizedDescription);
+        self.errorCount++;
+        return NO;
+    } else {
+        BOOL succeed = [data writeToFile:filePath
+                                 options:NSDataWritingWithoutOverwriting
+                                   error:&error];
+        if (!succeed) {
+            NSLog(@"save file %@ failed : %@", filePath, error.localizedDescription);
+            
+            succeed = [data writeToFile:alterFilePath
+                                options:NSDataWritingWithoutOverwriting
+                                  error:&error];
+            if (succeed) {
+                NSLog(@"Trying to save to %@.....and succeeded.", alterFilePath);
+                self.successCount++;
+            } else {
+                NSLog(@"Trying to save to %@.....still failed : %@", alterFilePath, error.localizedDescription);
+                self.errorCount++;
+            }
+        } else {
+            self.successCount++;
+        }
+        return succeed;
+    }
 }
 
 - (void)resetCounter

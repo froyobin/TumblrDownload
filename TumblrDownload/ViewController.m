@@ -141,6 +141,7 @@
     NSString *contents = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:&error];
     if (!error) {
         NSArray *substrings = [contents componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@" \n"]];
+        NSAssert(substrings.count % 2 == 0, @"Make sure there is always one reblog key with one id");
         for (int i=0; i<substrings.count; i+=2) {
             [self.postsToUnlike setObject:[NSNumber numberWithLong:[substrings[i+1] longLongValue]] forKey:substrings[i]];
         }
@@ -159,7 +160,6 @@
     [[TMAPIClient sharedInstance] unlike:blog_id.stringValue
                                reblogKey:reblog_key
                                 callback:^(id result, NSError *error) {
-                                    NSLog(@"%@", result);
                                     if (error) {
                                         NSLog(@"%@", error.localizedDescription);
                                     }
