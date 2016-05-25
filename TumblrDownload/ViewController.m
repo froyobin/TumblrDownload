@@ -6,8 +6,11 @@
 //
 //
 
+#define MAS_SHORTHAND
+
 #import "ViewController.h"
 #import <TMTumblrSDK/TMAPIClient.h>
+#import "Masonry.h"
 #import "DownloadCenter.h"
 #import "NSLabel.h"
 
@@ -15,6 +18,8 @@
 #define kKEY_API_KEY @"API key"
 #define kKEY_BLOG_NAME @"blog name"
 #define kDEFAULT_POSTS_TO_DOWNLOAD @20
+#define kKEY_DEFAULT_OFFSET 10.0f
+#define defaultOffset with.offset(kKEY_DEFAULT_OFFSET)
 
 
 @interface ViewController () <NSTextDelegate>
@@ -97,25 +102,52 @@
     [alert addButtonWithTitle:@"OK"];
     [alert addButtonWithTitle:@"Cancel"];
     
-    NSView *view = [[NSView alloc]initWithFrame:NSMakeRect(0, 0, 0.5 * CGRectGetWidth(self.view.frame), 70)];
+    NSView *view = [[NSView alloc]initWithFrame:NSMakeRect(0, 0, 560, 100)];
     
-    NSLabel *consumerSecretLabel = [[NSLabel alloc]initWithFrame:NSMakeRect(0, 0, 110, 20)];
+    NSLabel *consumerSecretLabel = [[NSLabel alloc]init];
     consumerSecretLabel.stringValue = @"Consumer Secret";
-    NSTextField *consumerSecret = [[NSTextField alloc]initWithFrame:NSMakeRect(115, 0, 0.5 * CGRectGetWidth(self.view.frame), 20)];
+    NSTextField *consumerSecret = [[NSTextField alloc]init];
     
-    NSLabel *tokenLabel = [[NSLabel alloc]initWithFrame:NSMakeRect(0, 25, 110, 20)];
+    NSLabel *tokenLabel = [[NSLabel alloc]init];
     tokenLabel.stringValue = @"Token";
-    NSTextField *token = [[NSTextField alloc]initWithFrame:NSMakeRect(115, 25, 0.5 * CGRectGetWidth(self.view.frame), 20)];
+    NSTextField *token = [[NSTextField alloc]init];
     
-    NSLabel *tokenSecretLabel = [[NSLabel alloc]initWithFrame:NSMakeRect(0, 50, 110, 20)];
+    NSLabel *tokenSecretLabel = [[NSLabel alloc]init];
     tokenSecretLabel.stringValue = @"Token Secret";
-    NSTextField *tokenSecret = [[NSTextField alloc]initWithFrame:NSMakeRect(115, 50, 0.5 * CGRectGetWidth(self.view.frame), 20)];
+    NSTextField *tokenSecret = [[NSTextField alloc]init];
     [view addSubview:consumerSecretLabel];
     [view addSubview:consumerSecret];
     [view addSubview:tokenLabel];
     [view addSubview:token];
     [view addSubview:tokenSecretLabel];
     [view addSubview:tokenSecret];
+    [consumerSecretLabel makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(view.left).defaultOffset;
+        make.top.equalTo(view.top).defaultOffset;
+    }];
+    [consumerSecret makeConstraints:^(MASConstraintMaker *make) {
+        make.left.equalTo(consumerSecretLabel.right).defaultOffset;
+        make.centerY.equalTo(consumerSecretLabel);
+        make.right.equalTo(view.right).with.offset(-kKEY_DEFAULT_OFFSET);
+    }];
+    [tokenLabel makeConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(consumerSecretLabel.bottom).defaultOffset;
+        make.left.equalTo(view.left).defaultOffset;
+    }];
+    [token makeConstraints:^(MASConstraintMaker *make) {
+        make.width.equalTo(consumerSecret);
+        make.centerY.equalTo(tokenLabel);
+        make.right.equalTo(view.right).with.offset(-kKEY_DEFAULT_OFFSET);
+    }];
+    [tokenSecretLabel makeConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(tokenLabel.bottom).defaultOffset;
+        make.left.equalTo(view.left).defaultOffset;
+    }];
+    [tokenSecret makeConstraints:^(MASConstraintMaker *make) {
+        make.width.equalTo(token);
+        make.centerY.equalTo(tokenSecretLabel);
+        make.right.equalTo(view.right).with.offset(-kKEY_DEFAULT_OFFSET);
+    }];
     alert.accessoryView = view;
     
     consumerSecret.stringValue = [TMAPIClient sharedInstance].OAuthConsumerSecret ?: @"";
