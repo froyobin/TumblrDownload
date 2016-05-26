@@ -1,0 +1,29 @@
+PODS:
+  - JXHTTP (3.0.2)
+  - Masonry (1.0.0)
+  - Spectacles (1.0.1)
+  - TMTumblrSDK (4.0.4):
+    - TMTumblrSDK/Activity (= 4.0.4)
+    - TMTumblrSDK/APIClient (= 4.0.4)
+    - TMTumblrSDK/AppClient (= 4.0.4)
+    - TMTumblrSDK/Core (= 4.0.4)
+  - TMTumblrSDK/APIClient (4.0.4):
+    - JXHTTP
+    - TMTumblrSDK/APIClient/Authentication (= 4.0.4)
+  - TMTumblrSDK/APIClient/Authentication (4.0.4):
+    - JXHTTP
+    - TMTumblrSDK/Core
+  - TMTumblrSDK/Core (4.0.4):
+    - Spectacles (~> 1.0)
+
+DEPENDENCIES:
+  - Masonry
+  - TMTumblrSDK
+
+SPEC CHECKSUMS:
+  JXHTTP: c37120f210cd2dfcb3470d70239f5253335e2f1a
+  Masonry: b529bb169217897b6354d4b56b1fada6d475b13d
+  Spectacles: 8dc60711140320653724560e2d6bbb8a8f0940e4
+  TMTumblrSDK: 7b253e968a31f515aee0ee5f7e5faa8b7b0d0470
+
+COCOAPODS: 0.39.0
