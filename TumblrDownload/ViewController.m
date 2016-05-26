@@ -13,6 +13,7 @@
 #import "Masonry.h"
 #import "DownloadCenter.h"
 #import "NSLabel.h"
+#import "AppDefines.h"
 
 #define kKEY_PATH @"save path"
 #define kKEY_API_KEY @"API key"
@@ -31,6 +32,8 @@
 @property (nonatomic) NSUInteger totalPosts;
 
 @property (nonatomic) NSMutableDictionary<NSString *, NSNumber *> *postsToUnlike;
+@property (nonatomic) id downloadStatusObserver;
+@property (nonatomic) BOOL finishedDownload;
 
 @end
 
@@ -46,6 +49,25 @@
     path ? self.savePath.stringValue = path : nil;
     NSString *blog = [[NSUserDefaults standardUserDefaults] stringForKey:kKEY_BLOG_NAME];
     blog ? self.blogName.stringValue = blog : nil;
+    
+    __weak typeof(self) weakSelf = self;
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    self.downloadStatusObserver = [center addObserverForName:kKEY_ALL_DOWNLOAD_FINISHED
+                                                      object:nil
+                                                       queue:[NSOperationQueue mainQueue]
+                                                  usingBlock:^(NSNotification * _Nonnull note) {
+                                                      if (weakSelf.finishedDownload) {
+                                                          NSAlert *alert = [NSAlert new];
+                                                          alert.alertStyle = NSInformationalAlertStyle;
+                                                          alert.messageText = @"All downloads finished";
+                                                          [alert runModal];
+                                                      }
+                                                  }];
+}
+
+- (void)dealloc
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self.downloadStatusObserver];
 }
 
 - (IBAction)clickSelectSavePath:(id)sender {
@@ -61,19 +83,7 @@
     }
 }
 
-- (IBAction)clickDownload:(id)sender {
-    NSString *api = self.apiKey.stringValue;
-    NSString *blog = self.blogName.stringValue;
-    NSAssert(api.length && blog.length, @"warn user later");
-
-    [[NSUserDefaults standardUserDefaults] setValue:api forKey:kKEY_API_KEY];
-    [[NSUserDefaults standardUserDefaults] setValue:blog forKey:kKEY_BLOG_NAME];
-    
-    [TMAPIClient sharedInstance].OAuthConsumerKey = api;
-    NSString *fullBlog = [NSString stringWithFormat:@"%@.tumblr.com", self.blogName.stringValue];
-    
-    [self downloadLikesFromBlog:fullBlog];
-}
+#pragma mark unlike posts
 
 - (IBAction)clickUnlike:(id)sender {
 
@@ -199,6 +209,24 @@
                                 }];
 }
 
+#pragma mark Download likes
+
+- (IBAction)clickDownload:(id)sender {
+    NSString *api = self.apiKey.stringValue;
+    NSString *blog = self.blogName.stringValue;
+    NSAssert(api.length && blog.length, @"warn user later");
+    
+    self.finishedDownload = NO;
+    
+    [[NSUserDefaults standardUserDefaults] setValue:api forKey:kKEY_API_KEY];
+    [[NSUserDefaults standardUserDefaults] setValue:blog forKey:kKEY_BLOG_NAME];
+    
+    [TMAPIClient sharedInstance].OAuthConsumerKey = api;
+    NSString *fullBlog = [NSString stringWithFormat:@"%@.tumblr.com", self.blogName.stringValue];
+    
+    [self downloadLikesFromBlog:fullBlog];
+}
+
 - (void)downloadLikesFromBlog:(NSString *)fullBlog
 {
     [DownloadCenter sharedInstance].saveLocation = self.savePath.stringValue;
@@ -207,6 +235,8 @@
     [self downloadPostsFromBlog:fullBlog atOffset:@0 count:@1 callBack:^(id timeStamp) {
         if (timeStamp) {
             [self recursivelyDownloadPostsFromBlog:fullBlog before:timeStamp count:kDEFAULT_POSTS_TO_DOWNLOAD];
+        } else {
+            self.finishedDownload = YES;
         }
     }];
     
@@ -238,6 +268,8 @@
                                    id newtimeStamp = [self downloadPostsIn:result];
                                    if (newtimeStamp) {
                                        [self recursivelyDownloadPostsFromBlog:fullBlog before:newtimeStamp count:kDEFAULT_POSTS_TO_DOWNLOAD];
+                                   } else {
+                                       self.finishedDownload = YES;
                                    }
                                }];
 }

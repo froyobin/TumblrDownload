@@ -8,6 +8,7 @@
 
 #import "DownloadCenter.h"
 #import "NSString+URLEncode.h"
+#import "AppDefines.h"
 
 static DownloadCenter *_instance;
 
@@ -107,7 +108,7 @@ static DownloadCenter *_instance;
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context
 {
     if (object == self.downloadQueue && [change[NSKeyValueChangeNewKey] integerValue] == 0) {
-        NSLog(@"Download finished error = %i success = %i", self.errorCount, self.successCount);
+        [[NSNotificationCenter defaultCenter] postNotificationName:kKEY_ALL_DOWNLOAD_FINISHED object:nil];
     }
 }
 
