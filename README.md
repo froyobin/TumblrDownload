@@ -13,9 +13,11 @@ Download a blog's liked posts to selected folder. (Sorry, Mac only)
 
 * It's very likely that the downloaded posts won't match the number of posts you liked. It seems like Tumblr's issue. (Tried to unlike all and still see likes but there is nothing within)
 * The API key and directory are both stored locally, but the other three keys used to unlike posts are not saved.
+* The OS will refuse to open the application because it's not signed. You can either hold Ctrl while opening the app or build the app yourself(recommended).
 
 ## ToDo:
 * Download a blog's posts
+* Download Text blog
 
 License
 ----
