@@ -34,6 +34,7 @@
 @property (nonatomic) NSMutableDictionary<NSString *, NSNumber *> *postsToUnlike;
 @property (nonatomic) id downloadStatusObserver;
 @property (nonatomic) BOOL finishedDownload;
+@property (nonatomic) NSMutableString *postsDownloaded;
 
 @end
 
@@ -56,18 +57,38 @@
                                                       object:nil
                                                        queue:[NSOperationQueue mainQueue]
                                                   usingBlock:^(NSNotification * _Nonnull note) {
-                                                      if (weakSelf.finishedDownload) {
-                                                          NSAlert *alert = [NSAlert new];
-                                                          alert.alertStyle = NSInformationalAlertStyle;
-                                                          alert.messageText = @"All downloads finished";
-                                                          [alert runModal];
-                                                      }
+                                                      [weakSelf downloadFinishedAction];
                                                   }];
 }
 
 - (void)dealloc
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self.downloadStatusObserver];
+}
+
+- (void)downloadFinishedAction
+{
+    if (self.finishedDownload) {
+        NSAlert *alert = [NSAlert new];
+        alert.alertStyle = NSInformationalAlertStyle;
+        alert.messageText = @"All downloads finished";
+        [alert runModal];
+        
+        [self saveDownloadedPosts];
+    }
+}
+
+- (void)saveDownloadedPosts
+{
+    if (self.postsDownloaded) {
+        NSDateFormatter *formatter = [NSDateFormatter new];
+        formatter.dateFormat = @"MM_dd_hh_mm_ss";
+        NSString *filename = [NSString stringWithFormat:@"saved-%@.txt", [formatter stringFromDate:[NSDate date]]];
+        NSString *path = [self.savePath.stringValue stringByAppendingPathComponent:filename];
+        NSError *error;
+        [self.postsDownloaded writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&error];
+        self.postsDownloaded = nil;
+    }
 }
 
 - (IBAction)clickSelectSavePath:(id)sender {
@@ -96,7 +117,7 @@
     [openPanel setCanChooseFiles:YES];
     [openPanel setCanChooseDirectories:NO];
     [openPanel setAllowsMultipleSelection:NO];
-    [openPanel setMessage:@"Select posts records to unlike"];
+    [openPanel setMessage:@"Select file of posts to unlike"];
     
     if ([openPanel runModal] == NSModalResponseOK) {
         NSString *filePath = openPanel.URL.path;
@@ -182,10 +203,15 @@
     NSError *error;
     NSString *contents = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:&error];
     if (!error) {
-        NSArray *substrings = [contents componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@" \n"]];
-        NSAssert(substrings.count % 2 == 0, @"Make sure there is always one reblog key with one id");
-        for (int i=0; i<substrings.count; i+=2) {
-            [self.postsToUnlike setObject:[NSNumber numberWithLong:[substrings[i+1] longLongValue]] forKey:substrings[i]];
+        NSArray *records = [contents componentsSeparatedByString:@"\n"];
+        for (NSString *record in records) {
+            NSArray *blogInfo = [record componentsSeparatedByString:@" "];
+            if (blogInfo.count < 2) {
+                continue;
+            }
+            NSString *reblogKey = blogInfo[0];
+            NSNumber *blogID = [NSNumber numberWithLong:[blogInfo[1] longLongValue]];
+            [self.postsToUnlike setObject:blogID forKey:reblogKey];
         }
     }
 }
@@ -193,14 +219,14 @@
 - (void)unlikeNextPost
 {
     if (self.postsToUnlike.count == 0) {
-        NSLog(@"No more to unlike");
+        NSLog(@"all posts unliked");
         return;
     }
-    NSString *reblog_key = [[self.postsToUnlike allKeys] firstObject];
-    NSNumber *blog_id = [self.postsToUnlike objectForKey:reblog_key];
-    [self.postsToUnlike removeObjectForKey:reblog_key];
-    [[TMAPIClient sharedInstance] unlike:blog_id.stringValue
-                               reblogKey:reblog_key
+    NSString *reblogKey = [[self.postsToUnlike allKeys] firstObject];
+    NSNumber *blogID = [self.postsToUnlike objectForKey:reblogKey];
+    [self.postsToUnlike removeObjectForKey:reblogKey];
+    [[TMAPIClient sharedInstance] unlike:blogID.stringValue
+                               reblogKey:reblogKey
                                 callback:^(id result, NSError *error) {
                                     if (error) {
                                         NSLog(@"%@", error.localizedDescription);
@@ -217,6 +243,7 @@
     NSAssert(api.length && blog.length, @"warn user later");
     
     self.finishedDownload = NO;
+    self.postsDownloaded = [NSMutableString new];
     
     [[NSUserDefaults standardUserDefaults] setValue:api forKey:kKEY_API_KEY];
     [[NSUserDefaults standardUserDefaults] setValue:blog forKey:kKEY_BLOG_NAME];
@@ -295,6 +322,7 @@
     if ([post[@"type"] isEqualToString:@"video"]) {
         NSString *videoURL = post[@"video_url"];
         [[DownloadCenter sharedInstance] addURLtoDownloadQueue:videoURL filename:[self postTitle:post] relativePath:nil];
+        [self.postsDownloaded appendFormat:@"%@ %@ %@\n", post[@"reblog_key"], post[@"id"], post[@"post_url"]];
         
     } else if ([post[@"type"] isEqualToString:@"photo"]) {
         NSArray *allPhotos = post[@"photos"];
@@ -311,6 +339,7 @@
                 [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:nil relativePath:[self postTitle:post]];
             }
         }
+        [self.postsDownloaded appendFormat:@"%@ %@ %@\n", post[@"reblog_key"], post[@"id"], post[@"post_url"]];
     }
     
     [self logMessageToScreen:postSummary];
