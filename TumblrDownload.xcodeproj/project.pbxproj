@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1D9437DB04BD0E87ACE4A058 /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BDAA17A018E09EEC66B4EECB /* libPods.a */; };
 		F72587C51CF416350006281C /* NSLabel.m in Sources */ = {isa = PBXBuildFile; fileRef = F72587C41CF416350006281C /* NSLabel.m */; };
+		F77734071CF6C5F700314484 /* NSAlert+helper.m in Sources */ = {isa = PBXBuildFile; fileRef = F77734061CF6C5F700314484 /* NSAlert+helper.m */; };
 		F7B3BC381CF02C20007C0957 /* DownloadCenter.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B3BC371CF02C20007C0957 /* DownloadCenter.m */; };
 		F7B3BC3B1CF0361D007C0957 /* NSString+URLEncode.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B3BC3A1CF0361D007C0957 /* NSString+URLEncode.m */; };
 		F7C12C2C1CEED0C90080B80A /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F7C12C2B1CEED0C90080B80A /* AppDelegate.m */; };
@@ -25,6 +26,8 @@
 		F72587C31CF416350006281C /* NSLabel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSLabel.h; sourceTree = "<group>"; };
 		F72587C41CF416350006281C /* NSLabel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NSLabel.m; sourceTree = "<group>"; };
 		F77734041CF6B1F000314484 /* AppDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDefines.h; sourceTree = "<group>"; };
+		F77734051CF6C5F700314484 /* NSAlert+helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSAlert+helper.h"; sourceTree = "<group>"; };
+		F77734061CF6C5F700314484 /* NSAlert+helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSAlert+helper.m"; sourceTree = "<group>"; };
 		F7B3BC361CF02C20007C0957 /* DownloadCenter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DownloadCenter.h; sourceTree = "<group>"; };
 		F7B3BC371CF02C20007C0957 /* DownloadCenter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DownloadCenter.m; sourceTree = "<group>"; };
 		F7B3BC391CF0361D007C0957 /* NSString+URLEncode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+URLEncode.h"; sourceTree = "<group>"; };
@@ -92,6 +95,8 @@
 				F7B3BC3A1CF0361D007C0957 /* NSString+URLEncode.m */,
 				F72587C31CF416350006281C /* NSLabel.h */,
 				F72587C41CF416350006281C /* NSLabel.m */,
+				F77734051CF6C5F700314484 /* NSAlert+helper.h */,
+				F77734061CF6C5F700314484 /* NSAlert+helper.m */,
 				F77734041CF6B1F000314484 /* AppDefines.h */,
 				F7C12C331CEED0C90080B80A /* Assets.xcassets */,
 				F7C12C351CEED0C90080B80A /* Main.storyboard */,
@@ -239,6 +244,7 @@
 				F7B3BC381CF02C20007C0957 /* DownloadCenter.m in Sources */,
 				F7C12C321CEED0C90080B80A /* ViewController.m in Sources */,
 				F7C12C2F1CEED0C90080B80A /* main.m in Sources */,
+				F77734071CF6C5F700314484 /* NSAlert+helper.m in Sources */,
 				F7C12C2C1CEED0C90080B80A /* AppDelegate.m in Sources */,
 				F7B3BC3B1CF0361D007C0957 /* NSString+URLEncode.m in Sources */,
 				F72587C51CF416350006281C /* NSLabel.m in Sources */,

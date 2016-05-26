@@ -13,6 +13,7 @@
 #import "Masonry.h"
 #import "DownloadCenter.h"
 #import "NSLabel.h"
+#import "NSAlert+helper.h"
 #import "AppDefines.h"
 
 #define kKEY_PATH @"save path"
@@ -69,11 +70,7 @@
 - (void)downloadFinishedAction
 {
     if (self.finishedDownload) {
-        NSAlert *alert = [NSAlert new];
-        alert.alertStyle = NSInformationalAlertStyle;
-        alert.messageText = @"All downloads finished";
-        [alert runModal];
-        
+        [NSAlert alert:@"All downloads finished"];
         [self saveDownloadedPosts];
     }
 }
@@ -219,7 +216,9 @@
 - (void)unlikeNextPost
 {
     if (self.postsToUnlike.count == 0) {
-        NSLog(@"all posts unliked");
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [NSAlert alert:@"All posts unliked"];
+        });
         return;
     }
     NSString *reblogKey = [[self.postsToUnlike allKeys] firstObject];
@@ -316,9 +315,6 @@
 
 - (id)downloadPost:(NSDictionary *)post
 {
-    NSMutableString *postSummary = [NSMutableString new];
-    [postSummary appendFormat:@"%@ %@", post[@"reblog_key"], post[@"id"]];
-
     if ([post[@"type"] isEqualToString:@"video"]) {
         NSString *videoURL = post[@"video_url"];
         [[DownloadCenter sharedInstance] addURLtoDownloadQueue:videoURL filename:[self postTitle:post] relativePath:nil];
@@ -333,7 +329,6 @@
             [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:[self postTitle:post] relativePath:nil];
             
         } else {
-            [postSummary appendFormat:@" count %lu", allPhotos.count];
             for (NSDictionary *singlePhoto in allPhotos) {
                 NSString *photoURL = [singlePhoto valueForKeyPath:@"original_size.url"];
                 [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:nil relativePath:[self postTitle:post]];
@@ -341,8 +336,6 @@
         }
         [self.postsDownloaded appendFormat:@"%@ %@ %@\n", post[@"reblog_key"], post[@"id"], post[@"post_url"]];
     }
-    
-    [self logMessageToScreen:postSummary];
     
     return post[@"liked_timestamp"];
 }
