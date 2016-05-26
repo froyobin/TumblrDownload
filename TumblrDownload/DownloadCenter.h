@@ -17,6 +17,6 @@
 + (instancetype)sharedInstance;
 
 - (void)resetCounter;
-- (void)addURLtoDownloadQueue:(NSString *)url filename:(NSString *)filename relativePath:(NSString *)relativePath;
+- (void)addURLtoDownloadQueue:(NSString *)url filename:(NSString *)filename relativePath:(NSString *)relativePath context:(NSDictionary *)context;
 
 @end

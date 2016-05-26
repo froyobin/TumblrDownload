@@ -60,6 +60,7 @@
                                                   usingBlock:^(NSNotification * _Nonnull note) {
                                                       [weakSelf downloadFinishedAction];
                                                   }];
+    [center addObserver:self selector:@selector(singleJobFinishedStatus:) name:kKEY_SINGLE_JOB_STATS object:nil];
 }
 
 - (void)dealloc
@@ -72,6 +73,13 @@
     if (self.finishedDownload) {
         [NSAlert alert:@"All downloads finished"];
         [self saveDownloadedPosts];
+    }
+}
+
+- (void)singleJobFinishedStatus:(NSNotification *)notificaiton
+{
+    if ([notificaiton.object isKindOfClass:[NSString class]]) {
+        [self logMessageToScreen:notificaiton.object];
     }
 }
 
@@ -317,7 +325,7 @@
 {
     if ([post[@"type"] isEqualToString:@"video"]) {
         NSString *videoURL = post[@"video_url"];
-        [[DownloadCenter sharedInstance] addURLtoDownloadQueue:videoURL filename:[self postTitle:post] relativePath:nil];
+        [[DownloadCenter sharedInstance] addURLtoDownloadQueue:videoURL filename:[self postTitle:post] relativePath:nil context:@{@"post_url" : post[@"post_url"]}];
         [self.postsDownloaded appendFormat:@"%@ %@ %@\n", post[@"reblog_key"], post[@"id"], post[@"post_url"]];
         
     } else if ([post[@"type"] isEqualToString:@"photo"]) {
@@ -326,12 +334,12 @@
         if (allPhotos.count == 1) {
             
             NSString *photoURL = [[allPhotos firstObject] valueForKeyPath:@"original_size.url"];
-            [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:[self postTitle:post] relativePath:nil];
+            [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:[self postTitle:post] relativePath:nil context:@{@"post_url" : post[@"post_url"]}];
             
         } else {
             for (NSDictionary *singlePhoto in allPhotos) {
                 NSString *photoURL = [singlePhoto valueForKeyPath:@"original_size.url"];
-                [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:nil relativePath:[self postTitle:post]];
+                [[DownloadCenter sharedInstance] addURLtoDownloadQueue:photoURL filename:nil relativePath:[self postTitle:post] context:@{@"post_url" : post[@"post_url"]}];
             }
         }
         [self.postsDownloaded appendFormat:@"%@ %@ %@\n", post[@"reblog_key"], post[@"id"], post[@"post_url"]];

@@ -12,11 +12,13 @@
 
 static DownloadCenter *_instance;
 
+
 @interface DownloadCenter ()
 
 @property (nonatomic) NSOperationQueue *downloadQueue;
 
 @end
+
 
 @implementation DownloadCenter
 
@@ -40,7 +42,7 @@ static DownloadCenter *_instance;
     return _downloadQueue;
 }
 
-- (void)addURLtoDownloadQueue:(NSString *)urlStr filename:(NSString *)filename relativePath:(NSString *)relativePath
+- (void)addURLtoDownloadQueue:(NSString *)urlStr filename:(NSString *)filename relativePath:(NSString *)relativePath context:(NSDictionary *)context
 {
     NSBlockOperation *downloadOperation = [NSBlockOperation blockOperationWithBlock:^{
         NSURL *url = [NSURL URLWithString:urlStr];
@@ -50,21 +52,23 @@ static DownloadCenter *_instance;
         
         if ([[NSFileManager defaultManager] fileExistsAtPath:destinationFilePath]) {
             self.successCount++;
+            [self logToScreen:[NSString stringWithFormat:@"File already exists for post: %@", context[@"post_url"]]];
             return;
         }
         
         NSError *error;
         NSData *data = [NSData dataWithContentsOfURL:url options:NSDataReadingMappedIfSafe error:&error];
         if (error) {
+            [self logToScreen:[NSString stringWithFormat:@"Post download failed: %@", context[@"post_url"]]];
             self.errorCount++;
         } else {
-            [self saveFile:data toLocation:destinationFilePath alterPath:[_saveLocation stringByAppendingPathComponent:urlStr.lastPathComponent]];
+            [self saveFile:data toLocation:destinationFilePath alterPath:[_saveLocation stringByAppendingPathComponent:urlStr.lastPathComponent] context:context];
         }
     }];
     [self.downloadQueue addOperation:downloadOperation];
 }
 
-- (BOOL)saveFile:(NSData *)data toLocation:(NSString *)filePath alterPath:(NSString *)alterFilePath
+- (BOOL)saveFile:(NSData *)data toLocation:(NSString *)filePath alterPath:(NSString *)alterFilePath context:(NSDictionary *)context
 {
     NSError *error;
     [[NSFileManager defaultManager] createDirectoryAtPath:[filePath stringByDeletingLastPathComponent]
@@ -73,6 +77,7 @@ static DownloadCenter *_instance;
                                                      error:&error];
     if (error != nil) {
         NSLog(@"error creating directory: %@", error.localizedDescription);
+        [self logToScreen:[NSString stringWithFormat:@"error creating directory: %@", error.localizedDescription]];
         self.errorCount++;
         return NO;
     } else {
@@ -90,6 +95,7 @@ static DownloadCenter *_instance;
                 self.successCount++;
             } else {
                 NSLog(@"Trying to save to %@.....still failed : %@", alterFilePath, error.localizedDescription);
+                [self logToScreen:[NSString stringWithFormat:@"Save failed for post: %@", context[@"post_url"]]];
                 self.errorCount++;
             }
         } else {
@@ -110,6 +116,11 @@ static DownloadCenter *_instance;
     if (object == self.downloadQueue && [change[NSKeyValueChangeNewKey] integerValue] == 0) {
         [[NSNotificationCenter defaultCenter] postNotificationName:kKEY_ALL_DOWNLOAD_FINISHED object:nil];
     }
+}
+
+- (void)logToScreen:(NSString *)message
+{
+    [[NSNotificationCenter defaultCenter] postNotificationName:kKEY_SINGLE_JOB_STATS object:message];
 }
 
 @end
